@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thợ săn thanh khoản — Brainstorm DSS Trading</title>
+<style>
+  :root{
+    --bg:#080b12; --panel:#0e131d; --panel2:#131a27; --ink:#dfe7f3; --dim:#7c8aa5;
+    --grid:#182234; --up:#26d07c; --down:#ff5a72; --gold:#f4c04e; --cyan:#3fd0e0;
+    --violet:#9d7bff; --line:#223047;
+    --mono:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+      radial-gradient(1200px 600px at 80% -10%,rgba(63,208,224,.08),transparent 60%),
+      radial-gradient(900px 500px at 0% 20%,rgba(157,123,255,.07),transparent 55%),
+      var(--bg);
+    color:var(--ink);font-family:var(--sans);line-height:1.6;
+    background-attachment:fixed;}
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px 80px}
+  code,.mono{font-family:var(--mono)}
+  a{color:var(--cyan)}
+
+  /* ticker */
+  .ticker{border-bottom:1px solid var(--line);background:rgba(8,11,18,.7);
+    overflow:hidden;white-space:nowrap;font-family:var(--mono);font-size:12.5px;
+    color:var(--dim);position:sticky;top:0;z-index:10;backdrop-filter:blur(6px)}
+  .ticker span{display:inline-block;padding:8px 26px;animation:slide 34s linear infinite}
+  .ticker b{color:var(--gold)} .ticker .g{color:var(--up)} .ticker .r{color:var(--down)}
+  @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  /* hero */
+  header{padding:70px 0 30px;text-align:center;position:relative}
+  .kick{font-family:var(--mono);letter-spacing:3px;color:var(--cyan);font-size:12px;text-transform:uppercase}
+  h1{font-size:clamp(30px,6vw,52px);margin:14px 0 8px;line-height:1.05;
+    background:linear-gradient(120deg,#fff,var(--cyan) 55%,var(--violet));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--dim);max-width:620px;margin:0 auto;font-size:16px}
+  .meta{margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .meta span{border:1px solid var(--line);border-radius:20px;padding:4px 12px;margin:0 4px;display:inline-block}
+
+  section{margin-top:56px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+  h2{font-size:clamp(22px,3.6vw,30px);margin:0 0 6px}
+  .lead{color:var(--dim);margin:0 0 26px;max-width:640px}
+
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid var(--line);border-radius:16px;padding:22px 24px}
+  .glow{box-shadow:0 0 0 1px rgba(63,208,224,.12),0 20px 60px -30px rgba(63,208,224,.5)}
+
+  /* bedrock cards */
+  .grid3{display:grid;gap:14px;grid-template-columns:repeat(3,1fr)}
+  @media(max-width:680px){.grid3{grid-template-columns:1fr}}
+  .prim{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .prim .n{font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .prim h3{margin:6px 0 6px;font-size:18px}
+  .prim.edge h3{color:var(--gold)} .prim.time h3{color:var(--cyan)} .prim.surv h3{color:var(--up)}
+  .prim p{margin:0;color:var(--dim);font-size:14px}
+
+  /* quote */
+  .quote{border-left:3px solid var(--gold);padding:6px 0 6px 20px;margin:24px 0;
+    font-size:19px;color:#fff}
+  .quote small{display:block;color:var(--dim);font-size:13px;margin-top:8px;font-family:var(--mono)}
+
+  /* tower */
+  .tower{display:flex;flex-direction:column;gap:10px}
+  .tier{border:1px solid var(--line);border-radius:12px;padding:16px 18px;position:relative;
+    background:var(--panel);transition:transform .2s}
+  .tier:hover{transform:translateX(6px)}
+  .tier .lab{font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--dim)}
+  .tier h4{margin:4px 0 4px;font-size:17px}
+  .tier p{margin:0;color:var(--dim);font-size:13.5px}
+  .tier .tag{position:absolute;top:14px;right:16px;font-family:var(--mono);font-size:10px;
+    padding:3px 9px;border-radius:20px;border:1px solid}
+  .t0{border-left:4px solid var(--down)} .t0 .tag{color:var(--down);border-color:var(--down)}
+  .t1{border-left:4px solid var(--gold)} .t1 .tag{color:var(--gold);border-color:var(--gold)}
+  .t2{border-left:4px solid var(--cyan)} .t2 .tag{color:var(--cyan);border-color:var(--cyan)}
+  .t3{border-left:4px solid var(--up)} .t3 .tag{color:var(--up);border-color:var(--up)}
+  .flow{text-align:center;color:var(--dim);font-family:var(--mono);font-size:12px}
+  .verdict{margin-top:12px;text-align:center;font-family:var(--mono);font-size:14px;color:var(--up);
+    border:1px dashed rgba(38,208,124,.4);border-radius:12px;padding:14px;background:rgba(38,208,124,.05)}
+
+  /* data lenses */
+  .lens{display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
+  @media(max-width:680px){.lens{grid-template-columns:1fr}}
+  .lens .l{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .lens .l b{color:var(--cyan)} .lens .l .free{float:right;font-family:var(--mono);font-size:10px;color:var(--up);
+    border:1px solid rgba(38,208,124,.4);border-radius:20px;padding:2px 8px}
+  .lens .l.paid .free{color:var(--gold);border-color:rgba(244,192,78,.4)}
+  .lens .l p{margin:8px 0 0;color:var(--dim);font-size:13px}
+
+  /* vs */
+  .vs{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:stretch;margin-top:8px}
+  @media(max-width:680px){.vs{grid-template-columns:1fr}}
+  .vs .side{padding:18px 20px;background:var(--panel);border:1px solid var(--line)}
+  .vs .rule{border-radius:12px 0 0 12px} .vs .ai{border-radius:0 12px 12px 0}
+  @media(max-width:680px){.vs .rule,.vs .ai{border-radius:12px}}
+  .vs .mid{display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+    color:var(--dim);padding:0 14px;font-size:13px}
+  .vs h4{margin:0 0 10px;font-size:15px}
+  .vs .rule h4{color:var(--up)} .vs .ai h4{color:var(--violet)}
+  .vs ul{margin:0;padding-left:18px;color:var(--dim);font-size:13.5px}
+  .vs li{margin:4px 0}
+
+  /* moscow */
+  .moscow{display:grid;gap:12px;grid-template-columns:repeat(4,1fr)}
+  @media(max-width:760px){.moscow{grid-template-columns:1fr 1fr}}
+  @media(max-width:460px){.moscow{grid-template-columns:1fr}}
+  .col{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel)}
+  .col h4{margin:0 0 10px;font-size:14px;font-family:var(--mono);letter-spacing:1px}
+  .must h4{color:var(--down)} .should h4{color:var(--gold)} .could h4{color:var(--cyan)} .wont h4{color:var(--dim)}
+  .col li{list-style:none;font-size:12.5px;color:var(--dim);padding:6px 0;border-top:1px solid var(--grid)}
+  .col li:first-of-type{border-top:none}
+
+  /* synthesis */
+  .syn{counter-reset:s}
+  .syn .item{display:flex;gap:16px;padding:20px 0;border-top:1px solid var(--line)}
+  .syn .item:first-child{border-top:none}
+  .syn .item::before{counter-increment:s;content:counter(s,decimal-leading-zero);
+    font-family:var(--mono);font-size:26px;color:var(--violet);font-weight:700;min-width:44px}
+  .syn h4{margin:0 0 4px;font-size:17px;color:#fff}
+  .syn p{margin:0;color:var(--dim);font-size:14.5px}
+
+  .foot{margin-top:64px;text-align:center;color:var(--dim);font-family:var(--mono);font-size:12px;
+    border-top:1px solid var(--line);padding-top:24px}
+  .pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--up);
+    box-shadow:0 0 0 0 rgba(38,208,124,.6);animation:p 2s infinite;margin-right:6px;vertical-align:middle}
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(38,208,124,.5)}70%{box-shadow:0 0 0 10px rgba(38,208,124,0)}100%{box-shadow:0 0 0 0 rgba(38,208,124,0)}}
+  .byu{color:var(--gold);font-style:italic}
+</style>
+</head>
+<body>
+
+<div class="ticker" aria-hidden="true">
+  <span>
+    BTC/USDT <span class="g">▲</span> funding <b>+0.09%</b> · OI <span class="g">↑</span> · L/S <b>2.4</b> &nbsp;&nbsp;|&nbsp;&nbsp;
+    EUR/USD <span class="r">▼</span> <b>NEWS BLACKOUT · FOMC in 00:12</b> &nbsp;&nbsp;|&nbsp;&nbsp;
+    STATE: <span class="r">WIN-STREAK ×4 → SIZE DAMPENED 0.5×</span> &nbsp;&nbsp;|&nbsp;&nbsp;
+    EXPECTANCY <span class="g">+0.34R</span> · MAX-DD <b>11.8%</b> &nbsp;&nbsp;|&nbsp;&nbsp;
+    RULE ENGINE ● &nbsp; LLM NARRATOR ● &nbsp; ML: <span class="r">OFF</span> &nbsp;&nbsp;|&nbsp;&nbsp;
+    BTC/USDT <span class="g">▲</span> funding <b>+0.09%</b> · OI <span class="g">↑</span> · L/S <b>2.4</b> &nbsp;&nbsp;|&nbsp;&nbsp;
+    EUR/USD <span class="r">▼</span> <b>NEWS BLACKOUT · FOMC in 00:12</b> &nbsp;&nbsp;|&nbsp;&nbsp;
+    STATE: <span class="r">WIN-STREAK ×4 → SIZE DAMPENED 0.5×</span> &nbsp;&nbsp;|&nbsp;&nbsp;
+    EXPECTANCY <span class="g">+0.34R</span> · MAX-DD <b>11.8%</b> &nbsp;&nbsp;|&nbsp;&nbsp;
+    RULE ENGINE ● &nbsp; LLM NARRATOR ● &nbsp; ML: <span class="r">OFF</span> &nbsp;&nbsp;|&nbsp;&nbsp;
+  </span>
+</div>
+
+<div class="wrap">
+
+  <header>
+    <div class="kick">Phiên brainstorming · Creative Partner</div>
+    <h1>Thợ săn thanh khoản</h1>
+    <p class="sub">Xây một hệ thống hỗ trợ ra quyết định cho FX &amp; Crypto — nơi kỷ luật được đúc thành mã, và giá không bao giờ được phép nói dối bạn về tương lai.</p>
+    <div class="meta">
+      <span>FX + Crypto</span><span>Cá nhân</span><span>Auto-suggest</span><span>2026-07-03</span>
+    </div>
+  </header>
+
+  <!-- BEDROCK -->
+  <section>
+    <div class="eyebrow">Kỹ thuật 01 · First Principles</div>
+    <h2>Bóc xuống tận đáy</h2>
+    <p class="lead">Quên indicator đi. Một lệnh có lời, ở tầng nguyên thủy, chỉ trả lời ba câu hỏi:</p>
+    <div class="grid3">
+      <div class="prim edge"><div class="n">01 · FUNDAMENTAL</div><h3>Edge</h3><p>Có lý do nào khiến xác suất nghiêng về một phía <em>ngay lúc này</em> không?</p></div>
+      <div class="prim time"><div class="n">02 · TECHNICAL</div><h3>Timing</h3><p>Cửa sổ đó mở trong bao lâu? Bóp cò ở đâu?</p></div>
+      <div class="prim surv"><div class="n">03 · RISK</div><h3>Survival</h3><p>Nếu sai, mất bao nhiêu — và mình có sống để đánh ván sau?</p></div>
+    </div>
+    <div class="quote">“Giá là thứ chúng ta không điều khiển được.”
+      <small>— khoảnh khắc lật cả hệ thống <span class="byu">(ý của bạn)</span></small></div>
+    <p class="lead">Hệ quả: hệ thống <strong>không được phép tiên tri giá</strong>. Nó chỉ nói về thứ bạn kiểm soát được — bấm hay không, size, stop, exit. <em>Im lặng cũng là một khuyến nghị.</em> Đây không phải máy dự đoán. Đây là <strong style="color:var(--gold)">cỗ máy ép kỷ luật</strong>.</p>
+  </section>
+
+  <!-- THE ENEMY -->
+  <section>
+    <div class="eyebrow">Chẩn đoán · Con quái vật</div>
+    <h2>Kẻ thù không đến lúc bạn thua</h2>
+    <div class="panel glow">
+      <p style="margin-top:0">Bạn thắng cả chuỗi. Rồi mất sạch. <strong style="color:var(--down)">Give-back.</strong> Con quái vật không nấp ở lệnh thua — nó xuất hiện <em>ngay sau khi bạn thắng</em>: tự tin bơm lên → overtrade → một cú revenge → chuỗi thắng bốc hơi.</p>
+      <p style="margin-bottom:0">👉 Nên hệ thống làm điều phản trực giác: <strong>một chuỗi thắng bị coi là TRẠNG THÁI NGUY HIỂM, không phải đèn xanh.</strong> Đa số dashboard tô xanh khi bạn thắng. Cái này thì siết lại.</p>
+    </div>
+    <div class="quote" style="border-color:var(--cyan)">“Tôi cần một hệ thống đủ uy tín để tôi <em>chịu nghe</em> — không có tín hiệu thì tôi bỏ qua.”
+      <small>— và thế là niềm tin trở thành cái phanh <span class="byu">(ý của bạn)</span></small></div>
+    <p class="lead">Nhưng uy tín <strong>không phải win rate</strong> — đó chính là cái bẫy tạo ra give-back. Uy tín thật = <strong style="color:var(--gold)">Expectancy</strong>: thắng đều qua thời gian dài × tỷ lệ thua/thắng được kiểm soát chặt, và max drawdown thấp.</p>
+  </section>
+
+  <!-- THE TOWER -->
+  <section>
+    <div class="eyebrow">Kỹ thuật 02 · Morphological Analysis</div>
+    <h2>Tháp bốn tầng phân cấp</h2>
+    <p class="lead">"Kết hợp TA + FA" không phải cộng điểm 50/50. Đó là một tháp — tín hiệu phải sống sót từ trên xuống dưới. Tầng nào chặn, hệ thống im lặng.</p>
+    <div class="tower">
+      <div class="tier t0"><span class="tag">VETO</span><div class="lab">TẦNG 0 · HÀNH VI</div>
+        <h4>Người gác kỷ luật</h4>
+        <p>Vừa lỗ → cooldown. Thắng chuỗi → siết size. Chạm giới hạn lệnh/ngày → dừng. Sắp ra tin FX mạnh → blackout. <em>Đây là trái tim.</em></p></div>
+      <div class="flow">▼ được phép săn</div>
+      <div class="tier t1"><span class="tag">EDGE</span><div class="lab">TẦNG 1 · REGIME + HƯỚNG</div>
+        <h4>Đọc vùng thanh khoản</h4>
+        <p>FX: price action suy luận thanh khoản. Crypto: funding · OI · long/short · CVD. Không rõ hướng → không tín hiệu.</p></div>
+      <div class="flow">▼ hướng xác định</div>
+      <div class="tier t2"><span class="tag">TIMING</span><div class="lab">TẦNG 2 · PRICE ACTION</div>
+        <h4>Khoanh vùng — không bóp cò hộ</h4>
+        <p>Tự khoanh vùng vào lệnh theo hướng Tầng 1 cho phép. <strong>Không tự đặt lệnh</strong> — bạn xác nhận.</p></div>
+      <div class="flow">▼</div>
+      <div class="tier t3"><span class="tag">RISK</span><div class="lab">TẦNG 3 · SIZING</div>
+        <h4>Nơi có tiền — toán cứng 100%</h4>
+        <p>Size theo % rủi ro cố định · stop theo cấu trúc · R:R &lt; ngưỡng → huỷ đề xuất.</p></div>
+    </div>
+    <div class="verdict">✓ Qua hết 4 tầng → “Điểm này phù hợp để vào — size X%, stop @Y, R:R Z.”</div>
+  </section>
+
+  <!-- LENSES -->
+  <section>
+    <div class="eyebrow">Cầu nối · FX ↔ Crypto</div>
+    <h2>Kính nhìn xuyên sương</h2>
+    <p class="lead">Cùng một triết lý săn thanh khoản. Ở FX bạn <em>suy đoán</em> nó bằng mắt (trong sương mù). Ở crypto nó <em>hiện thành data</em> (giữa ban ngày) — nhờ Binance API, gần như miễn phí.</p>
+    <div class="lens">
+      <div class="l"><span class="free">BINANCE FREE</span><b>Funding rate</b><p>Cực trị = đám đông đang kẹt một phía. Nhiên liệu cho cú quét ngược.</p></div>
+      <div class="l"><span class="free">BINANCE FREE</span><b>Open Interest</b><p>Giá↑ + OI↑ = tiền mới, trend thật. OI↓ = short cover, dễ hết hơi.</p></div>
+      <div class="l"><span class="free">BINANCE FREE</span><b>Long/Short ratio &amp; CVD</b><p>Sentiment đo được + ai thực sự đang đẩy giá (spot bền vs perp mong manh).</p></div>
+      <div class="l paid"><span class="free">V2 · TRẢ PHÍ</span><b>Liquidation heatmap</b><p>Bản đồ thanh khoản thật (Coinglass). Binance không cho lịch sử đầy đủ — để dành v2.</p></div>
+    </div>
+  </section>
+
+  <!-- RULE vs AI -->
+  <section>
+    <div class="eyebrow">Khớp nối kiến trúc</div>
+    <h2>Rule để TIN · LLM để DIỄN GIẢI</h2>
+    <p class="lead">Không chọn một — chia theo bản chất. Determinism ở nơi có tiền &amp; kỷ luật; intelligence ở nơi có mơ hồ. Và: <strong>chỉ dùng LLM, không dùng ML.</strong></p>
+    <div class="vs">
+      <div class="side rule">
+        <h4>🔒 RULE — bộ xương quyết định</h4>
+        <ul>
+          <li>Tầng 0 hành vi + Tầng 3 sizing</li>
+          <li>Backtest được → chứng minh expectancy</li>
+          <li>Bất khả xâm phạm lúc 2h sáng máu dồn lên đầu</li>
+        </ul>
+      </div>
+      <div class="mid">×</div>
+      <div class="side ai">
+        <h4>🗣️ LLM — đôi mắt &amp; cái miệng</h4>
+        <ul>
+          <li>Viết cái <em>“tại sao”</em> → xây niềm tin để bấm nút</li>
+          <li>Đọc ngữ cảnh mờ → tag cấu trúc (v2)</li>
+          <li>Veto <strong>một chiều</strong>: chỉ làm thận trọng hơn, không bao giờ liều hơn</li>
+        </ul>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:16px">Cái đẹp: kể cả khi LLM ảo giác, nó chỉ có thể khiến bạn <em>bỏ lỡ</em> một lệnh — không bao giờ khiến bạn vào một lệnh tồi. Sai số luôn nghiêng về an toàn.</p>
+  </section>
+
+  <!-- MOSCOW -->
+  <section>
+    <div class="eyebrow">Hội tụ · MoSCoW</div>
+    <h2>v1 gồm gì</h2>
+    <div class="moscow">
+      <div class="col must"><h4>MUST</h4>
+        <li>Tầng 0 hành vi</li><li>Tầng 3 sizing/stop/R:R</li><li>Blackout tin FX</li>
+        <li>Crypto Tier-1 (Binance free)</li><li>Tầng 2 khoanh vùng</li><li>LLM diễn giải</li><li>Backtest → expectancy/max-DD</li></div>
+      <div class="col should"><h4>SHOULD</h4>
+        <li>Nhật ký / audit review hoàn chỉnh</li></div>
+      <div class="col could"><h4>COULD · v2</h4>
+        <li>LLM đọc-tin → tag</li><li>LLM veto một chiều</li><li>Liquidation heatmap</li><li>On-chain data</li></div>
+      <div class="col wont"><h4>WON'T</h4>
+        <li>Full auto đặt lệnh</li><li>ML dự đoán giá</li></div>
+    </div>
+  </section>
+
+  <!-- SYNTHESIS -->
+  <section>
+    <div class="eyebrow">Đỉnh điểm · Ba mối nối</div>
+    <h2>Điều bạn có thể chưa để ý</h2>
+    <div class="syn">
+      <div class="item"><div><h4>Niềm tin, chứ không phải độ chính xác, là bài toán trung tâm.</h4>
+        <p>“Uy tín” + “expectancy” + “LLM diễn giải cái tại sao” — cả ba cùng phục vụ một việc duy nhất: khiến bạn <em>chịu tuân theo</em>. Xây hệ thống chính xác dễ hơn xây hệ thống bạn tin.</p></div></div>
+      <div class="item"><div><h4>Kẻ thù và lời giải là cùng một cơ chế lộn ngược.</h4>
+        <p>Give-back xảy ra sau khi thắng → nên Tầng 0 “siết khi thắng chuỗi” không phải tính năng phụ. Cả tháp 4 tầng được dựng để phục vụ đúng cái tầng cao nhất đó.</p></div></div>
+      <div class="item"><div><h4>Bridge FX↔Crypto là viên ngọc ẩn.</h4>
+        <p>Bạn không xây hai hệ thống. Bạn xây <strong>một bộ óc với hai độ phân giải</strong> — săn thanh khoản bằng mắt ở FX, bằng data ở crypto. Nhờ đó scope v1 nhỏ lại rất nhiều.</p></div></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span class="pulse"></span>SESSION COMPLETE · Creative Partner · 2026-07-03<br>
+    Rule engine ● &nbsp; LLM narrator ● &nbsp; ML off · &nbsp; “Không tiên tri. Chỉ đề xuất hành động kiểm soát được.”
+  </div>
+
+</div>
+</body>
+</html>
