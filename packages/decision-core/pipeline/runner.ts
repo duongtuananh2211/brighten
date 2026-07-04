@@ -1,6 +1,12 @@
 import type { ConfigSnapshot } from "@brighten/config";
 import type { ClockPort } from "../ports/index.js";
-import type { BehavioralState, MarketSnapshot, Suggestion } from "../types/index.js";
+import type {
+  AccountState,
+  BehavioralState,
+  MarketSnapshot,
+  Suggestion,
+  TradeCandidate
+} from "../types/index.js";
 
 export type TierId = "tier0" | "tier1" | "tier2" | "tier3";
 
@@ -12,6 +18,9 @@ export interface TierContext {
   readonly input: MarketSnapshot;
   readonly state: BehavioralState;
   readonly config: ConfigSnapshot;
+  // Optional until tier2 emits candidates and account equity is fed from persistence/adapters.
+  readonly candidate?: TradeCandidate;
+  readonly account?: AccountState;
   readonly nowEpochMillis: number;
 }
 

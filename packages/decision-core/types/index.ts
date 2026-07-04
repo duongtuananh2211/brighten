@@ -14,6 +14,21 @@ export interface BehavioralState {
   readonly tradeCountToday: number;
 }
 
+export type TradeDirection = "long" | "short";
+
+// [PLACEHOLDER — produced by tier2 price-action rules in a fuller system]
+export interface TradeCandidate {
+  readonly direction: TradeDirection;
+  readonly entry: string;
+  readonly stop: string;
+  readonly target: string;
+}
+
+// [PLACEHOLDER — enriched when read-only balance feedback is available]
+export interface AccountState {
+  readonly equity: string;
+}
+
 // [PLACEHOLDER — enriched in Story 1.6/1.8]
 export interface Suggestion {
   readonly kind: "stub";

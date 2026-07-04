@@ -21,6 +21,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@brighten/config": "workspace:*"
+    "@brighten/config": "workspace:*",
+    "decimal.js": "^10.6.0"
   }
 }
