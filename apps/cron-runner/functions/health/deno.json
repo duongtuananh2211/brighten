@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "@brighten/decision-core": "../../../packages/decision-core/index.ts"
+  }
+}

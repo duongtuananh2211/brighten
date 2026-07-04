@@ -1,0 +1,17 @@
+{
+  "name": "@brighten/backtest-cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "backtest-cli": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "typecheck": "tsc -b tsconfig.json",
+    "lint": "eslint . --max-warnings=0"
+  },
+  "dependencies": {
+    "@brighten/decision-core": "workspace:*"
+  }
+}

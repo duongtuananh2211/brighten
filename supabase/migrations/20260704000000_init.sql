@@ -1,0 +1,1 @@
+-- Empty initial migration for local Supabase bootstrap.
