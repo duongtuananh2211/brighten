@@ -11,6 +11,10 @@
     "./ports": {
       "types": "./dist/ports/index.d.ts",
       "default": "./dist/ports/index.js"
+    },
+    "./math": {
+      "types": "./dist/math/decimal.d.ts",
+      "default": "./dist/math/decimal.js"
     }
   },
   "scripts": {

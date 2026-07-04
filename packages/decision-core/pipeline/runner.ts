@@ -3,6 +3,7 @@ import type { ClockPort } from "../ports/index.js";
 import type {
   AccountState,
   BehavioralState,
+  CostEstimate,
   MarketSnapshot,
   Suggestion,
   TradeCandidate
@@ -21,6 +22,10 @@ export interface TierContext {
   // Optional until tier2 emits candidates and account equity is fed from persistence/adapters.
   readonly candidate?: TradeCandidate;
   readonly account?: AccountState;
+  // Optional until tier1 emits expected edge; decimal-string in quote units.
+  readonly expectedEdge?: string;
+  // Optional until the Story 1.8 fee model/adapter provides round-trip cost estimates.
+  readonly cost?: CostEstimate;
   readonly nowEpochMillis: number;
 }
 

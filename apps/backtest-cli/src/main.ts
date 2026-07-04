@@ -1,8 +1,96 @@
-import type { PipelineResult } from "@brighten/decision-core";
+import { createBinanceRestIngestion } from "@brighten/adapters";
+import { DEFAULT_PARAMS, createConfigVersion, snapshot } from "@brighten/config";
 
-function main(): void {
-  const scaffoldResult: PipelineResult = { outcome: "silent" };
-  console.log(`backtest-cli scaffold ok: ${scaffoldResult.outcome}`);
+import { runBacktest } from "./run.js";
+import { runValidation } from "./validate.js";
+import type { BacktestStrategyInput, ValidationMode, WalkForwardSpec } from "./types.js";
+
+interface CliArgs {
+  readonly command: "backtest" | "validate";
+  readonly pair: string;
+  readonly timeframe: string;
+  readonly fromEpochMillis: number;
+  readonly toEpochMillis: number;
 }
 
-main();
+function parseArgs(argv: readonly string[]): CliArgs {
+  const [first, second, third, fourth, fifth] = argv;
+  const command = first === "validate" ? "validate" : "backtest";
+  const [pair, timeframe, from, to] =
+    command === "validate" ? [second, third, fourth, fifth] : [first, second, third, fourth];
+
+  if (pair === undefined || timeframe === undefined || from === undefined || to === undefined) {
+    throw new Error(
+      "Usage: backtest-cli <pair> <timeframe> <fromEpochMillis> <toEpochMillis> | backtest-cli validate <pair> <timeframe> <fromEpochMillis> <toEpochMillis>"
+    );
+  }
+
+  const fromEpochMillis = Number(from);
+  const toEpochMillis = Number(to);
+  if (!Number.isFinite(fromEpochMillis) || !Number.isFinite(toEpochMillis)) {
+    throw new Error("fromEpochMillis and toEpochMillis must be numeric epoch milliseconds");
+  }
+
+  return { command, pair, timeframe, fromEpochMillis, toEpochMillis };
+}
+
+async function main(): Promise<void> {
+  const args = parseArgs(process.argv.slice(2));
+
+  const ingestion = createBinanceRestIngestion();
+  const configSnapshot = snapshot(createConfigVersion(DEFAULT_PARAMS, undefined, Date.now()));
+
+  // Epic 1: no real candidate/edge generation yet (Tier 1/2 are stubs), so the
+  // strategy seam is empty. Epic 2 feeds real signals through this same seam.
+  const strategyInput: BacktestStrategyInput = {
+    state: { winStreak: 0, dailyLoss: "0", tradeCountToday: 0 },
+    account: { equity: "10000" },
+    signals: []
+  };
+
+  const request = {
+    pair: args.pair,
+    timeframe: args.timeframe,
+    fromEpochMillis: args.fromEpochMillis,
+    toEpochMillis: args.toEpochMillis
+  };
+  const validationSpec: WalkForwardSpec = {
+    folds: 3,
+    inSampleRatio: "0.5",
+    holdoutRatio: "0.2"
+  };
+  const mode: ValidationMode = args.command === "validate" ? "backtest" : "backtest";
+
+  const result =
+    args.command === "validate"
+      ? await runValidation({
+          ingestion,
+          request,
+          strategyInput,
+          configSnapshot,
+          spec: validationSpec,
+          bootstrap: { resamples: 100, seed: 1 },
+          tunedParamNames: [],
+          paperTradeCompleted: false,
+          mode
+        })
+      : await runBacktest({
+          ingestion,
+          request,
+          strategyInput,
+          configSnapshot
+        });
+
+  if (!result.ok) {
+    console.error(JSON.stringify(result.error, null, 2));
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(JSON.stringify(result.value, null, 2));
+}
+
+main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});

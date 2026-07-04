@@ -1,13 +1,15 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist",
     "composite": true
   },
   "references": [
-    { "path": "../../packages/decision-core" }
+    { "path": "../../packages/decision-core" },
+    { "path": "../../packages/adapters" },
+    { "path": "../../packages/config" }
   ],
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "vitest.config.ts"],
   "exclude": ["dist", "node_modules"]
 }

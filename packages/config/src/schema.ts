@@ -12,6 +12,7 @@ export interface NewsBlackoutWindow {
   readonly startsAt: number;
   readonly endsAt: number;
   readonly reason?: string;
+  readonly pairs?: readonly string[];
 }
 
 export interface ConfigParams {
@@ -20,9 +21,14 @@ export interface ConfigParams {
   readonly size_dampening: string;
   readonly daily_loss_limit: string;
   readonly max_trades_per_day: number;
+  readonly max_tunable_params: number;
   readonly min_rr: string;
   readonly risk_pct: string;
   readonly cost_hurdle_x: string;
+  readonly overtrade_cost_ratio_limit: string;
+  readonly fee_rate: string;
+  readonly spread: string;
+  readonly slippage: string;
   readonly news_blackout: readonly NewsBlackoutWindow[];
   readonly trading_day_boundary: string;
 }
@@ -33,9 +39,14 @@ export const DEFAULT_PARAMS: ConfigParams = {
   size_dampening: "0.5",
   daily_loss_limit: "100",
   max_trades_per_day: 5,
+  max_tunable_params: 5,
   min_rr: "1.5",
   risk_pct: "1",
   cost_hurdle_x: "1",
+  overtrade_cost_ratio_limit: "0.3",
+  fee_rate: "0.0004",
+  spread: "0.0001",
+  slippage: "0.0002",
   news_blackout: [],
   trading_day_boundary: "UTC 00:00"
 };
@@ -54,9 +65,14 @@ export function validateParams(input: unknown): Result<ConfigParams> {
     "size_dampening",
     "daily_loss_limit",
     "max_trades_per_day",
+    "max_tunable_params",
     "min_rr",
     "risk_pct",
     "cost_hurdle_x",
+    "overtrade_cost_ratio_limit",
+    "fee_rate",
+    "spread",
+    "slippage",
     "news_blackout",
     "trading_day_boundary"
   ] as const;
@@ -82,6 +98,11 @@ export function validateParams(input: unknown): Result<ConfigParams> {
     return invalid("invalid_positive_integer", "max_trades_per_day", "Expected integer >= 1");
   }
 
+  const maxTunableParams = input.max_tunable_params;
+  if (!isPositiveInteger(maxTunableParams)) {
+    return invalid("invalid_positive_integer", "max_tunable_params", "Expected integer >= 1");
+  }
+
   const sizeDampening = validateDecimalField("size_dampening", input.size_dampening);
   if (!sizeDampening.ok) {
     return sizeDampening;
@@ -105,6 +126,29 @@ export function validateParams(input: unknown): Result<ConfigParams> {
   const costHurdleX = validateDecimalField("cost_hurdle_x", input.cost_hurdle_x);
   if (!costHurdleX.ok) {
     return costHurdleX;
+  }
+
+  const overtradeCostRatioLimit = validateDecimalField(
+    "overtrade_cost_ratio_limit",
+    input.overtrade_cost_ratio_limit
+  );
+  if (!overtradeCostRatioLimit.ok) {
+    return overtradeCostRatioLimit;
+  }
+
+  const feeRate = validateNonNegativeDecimalField("fee_rate", input.fee_rate);
+  if (!feeRate.ok) {
+    return feeRate;
+  }
+
+  const spread = validateNonNegativeDecimalField("spread", input.spread);
+  if (!spread.ok) {
+    return spread;
+  }
+
+  const slippage = validateNonNegativeDecimalField("slippage", input.slippage);
+  if (!slippage.ok) {
+    return slippage;
   }
 
   if (decimalToNumber(riskPct.value) >= 100) {
@@ -133,9 +177,14 @@ export function validateParams(input: unknown): Result<ConfigParams> {
       size_dampening: sizeDampening.value,
       daily_loss_limit: dailyLossLimit.value,
       max_trades_per_day: maxTradesPerDay,
+      max_tunable_params: maxTunableParams,
       min_rr: minRr.value,
       risk_pct: riskPct.value,
       cost_hurdle_x: costHurdleX.value,
+      overtrade_cost_ratio_limit: overtradeCostRatioLimit.value,
+      fee_rate: feeRate.value,
+      spread: spread.value,
+      slippage: slippage.value,
       news_blackout: newsBlackoutResult.value,
       trading_day_boundary: tradingDayBoundary
     }
@@ -171,11 +220,19 @@ function validateNewsBlackout(value: unknown): Result<readonly NewsBlackoutWindo
       });
     }
 
-    windows.push(
-      typeof window.reason === "string"
-        ? { startsAt: window.startsAt, endsAt: window.endsAt, reason: window.reason }
-        : { startsAt: window.startsAt, endsAt: window.endsAt }
-    );
+    if ("pairs" in window && !isStringArray(window.pairs)) {
+      return invalid("invalid_news_blackout_window_pairs", "news_blackout", "Window pairs must be strings", {
+        index
+      });
+    }
+
+    const validatedWindow: NewsBlackoutWindow = {
+      startsAt: window.startsAt,
+      endsAt: window.endsAt,
+      ...(typeof window.reason === "string" ? { reason: window.reason } : {}),
+      ...(isStringArray(window.pairs) ? { pairs: window.pairs } : {})
+    };
+    windows.push(validatedWindow);
   }
 
   return { ok: true, value: windows };
@@ -193,13 +250,29 @@ function isPositiveInteger(value: unknown): value is number {
   return Number.isInteger(value) && typeof value === "number" && value >= 1;
 }
 
+function isStringArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
 function isPositiveDecimalString(value: unknown): value is string {
   return typeof value === "string" && decimalPattern.test(value) && decimalToNumber(value) > 0;
+}
+
+function isNonNegativeDecimalString(value: unknown): value is string {
+  return typeof value === "string" && decimalPattern.test(value) && decimalToNumber(value) >= 0;
 }
 
 function validateDecimalField(fieldName: string, value: unknown): Result<string> {
   if (!isPositiveDecimalString(value)) {
     return invalid("invalid_positive_decimal_string", fieldName, "Expected decimal string > 0");
+  }
+
+  return { ok: true, value };
+}
+
+function validateNonNegativeDecimalField(fieldName: string, value: unknown): Result<string> {
+  if (!isNonNegativeDecimalString(value)) {
+    return invalid("invalid_non_negative_decimal_string", fieldName, "Expected decimal string >= 0");
   }
 
   return { ok: true, value };

@@ -10,13 +10,15 @@ const fixedNowEpochMillis = 1_700_000_000_000;
 const input: MarketSnapshot = {
   pair: "BTCUSDT",
   timeframe: "1m",
-  atEpochMillis: fixedNowEpochMillis
+  atEpochMillis: fixedNowEpochMillis,
+  klines: [],
+  warnings: []
 };
 
 const state: BehavioralState = {
   winStreak: 0,
   dailyLoss: "0",
-  cooldownUntilEpochMillis: undefined,
+  lastLossEpochMillis: undefined,
   tradeCountToday: 0
 };
 
@@ -28,9 +30,14 @@ const config: ConfigSnapshot = {
     size_dampening: "0.5",
     daily_loss_limit: "100",
     max_trades_per_day: 5,
+    max_tunable_params: 5,
     min_rr: "1.5",
     risk_pct: "1",
     cost_hurdle_x: "1",
+    overtrade_cost_ratio_limit: "0.3",
+    fee_rate: "0.0004",
+    spread: "0.0001",
+    slippage: "0.0002",
     news_blackout: [],
     trading_day_boundary: "UTC 00:00"
   }

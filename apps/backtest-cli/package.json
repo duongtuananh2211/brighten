@@ -7,11 +7,18 @@
     "backtest-cli": "./dist/main.js"
   },
   "scripts": {
-    "build": "tsc -b tsconfig.json",
-    "typecheck": "tsc -b tsconfig.json",
-    "lint": "eslint . --max-warnings=0"
+    "build": "tsc -b tsconfig.build.json",
+    "typecheck": "tsc -b tsconfig.build.json",
+    "lint": "eslint . --max-warnings=0",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@brighten/adapters": "workspace:*",
+    "@brighten/config": "workspace:*",
     "@brighten/decision-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.1"
   }
 }

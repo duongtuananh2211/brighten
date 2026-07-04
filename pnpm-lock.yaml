@@ -26,9 +26,19 @@ importers:
 
   apps/backtest-cli:
     dependencies:
+      '@brighten/adapters':
+        specifier: workspace:*
+        version: link:../../packages/adapters
+      '@brighten/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@brighten/decision-core':
         specifier: workspace:*
         version: link:../../packages/decision-core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.19.1
+        version: 22.20.0
 
   apps/cron-runner:
     dependencies:

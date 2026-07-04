@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src"
+  },
+  "references": [
+    { "path": "../../packages/decision-core/tsconfig.build.json" },
+    { "path": "../../packages/adapters/tsconfig.build.json" },
+    { "path": "../../packages/config/tsconfig.build.json" }
+  ],
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules", "src/**/*.test.ts", "src/test-support.ts"]
+}
