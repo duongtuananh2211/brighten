@@ -1,8 +1,8 @@
-import type { DecisionCoreScaffold } from "@brighten/decision-core";
+import type { PipelineResult } from "@brighten/decision-core";
 
 function main(): void {
-  const scaffold: DecisionCoreScaffold = { name: "decision-core" };
-  console.log(`backtest-cli scaffold ok: ${scaffold.name}`);
+  const scaffoldResult: PipelineResult = { outcome: "silent" };
+  console.log(`backtest-cli scaffold ok: ${scaffoldResult.outcome}`);
 }
 
 main();

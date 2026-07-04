@@ -1,4 +1,5 @@
 export * from "./ports/index.js";
+export * from "./pipeline/runner.js";
 export * from "./tiers/tier0/index.js";
 export * from "./tiers/tier1/index.js";
 export * from "./tiers/tier2/index.js";

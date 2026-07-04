@@ -1,4 +1,4 @@
-import type { DecisionCoreScaffold } from "@brighten/decision-core";
+import type { PipelineResult } from "@brighten/decision-core";
 
 declare const Deno: {
   readonly serve: (
@@ -7,10 +7,10 @@ declare const Deno: {
 };
 
 Deno.serve(() => {
-  const scaffold: DecisionCoreScaffold = { name: "decision-core" };
+  const scaffoldResult: PipelineResult = { outcome: "silent" };
 
   return new Response(
-    JSON.stringify({ ok: true, core: scaffold.name }),
+    JSON.stringify({ ok: true, core: scaffoldResult.outcome }),
     { headers: { "content-type": "application/json" }, status: 200 }
   );
 });
