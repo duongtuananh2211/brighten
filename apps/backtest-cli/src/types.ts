@@ -2,21 +2,17 @@ import type {
   AccountState,
   BehavioralState,
   SizingResult,
-  TradeCandidate,
   CoreError
 } from "@brighten/decision-core";
 import type { ConfigSnapshot } from "@brighten/config";
 
 // --- Deterministic strategy-input seam (epic-1 fixture) ---------------------
-// Tier 1 (edge) and Tier 2 (candidate/price-action) are still stubs in epic 1,
-// so the engine is fed candidate/edge/state/account through this seam per tick,
-// exactly the way 1.4/1.5/1.6 inject fixtures. Real signals arrive in epic 2.
+// State/account remain a temporary seam until the feedback loop and balance
+// feed land; direction/candidate/sizing are produced inside decision-core.
 
 export interface BacktestSignal {
   // Index into the snapshot's klines array where this signal is evaluated.
   readonly tickIndex: number;
-  readonly candidate?: TradeCandidate;
-  readonly expectedEdge?: string;
   readonly state?: BehavioralState;
   readonly account?: AccountState;
 }
@@ -30,9 +26,8 @@ export interface BacktestStrategyInput {
 
 // --- Engine intermediate + output shapes -----------------------------------
 
-// A core-emitted suggestion the driver will simulate. Sizing is recomputed from
-// the SAME core functions the pipeline used (dampening + sizeTrade), never
-// re-implemented in the driver (AD-3).
+// A core-emitted suggestion the driver will simulate. Sizing is surfaced by the
+// pipeline; the driver never re-implements decision rules (AD-3).
 export interface EmittedTrade {
   readonly entryTickIndex: number;
   readonly entryEpochMillis: number;

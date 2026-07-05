@@ -30,6 +30,16 @@ const config: ConfigSnapshot = {
     daily_loss_limit: "100",
     max_trades_per_day: 5,
     max_tunable_params: 5,
+    funding_extreme_threshold: "0.0005",
+    long_short_extreme_ratio: "2",
+    oi_confirmation_min: "0.01",
+    tier1_min_data_points: 2,
+    fx_swing_lookback: 20,
+    fx_sweep_min_penetration: "0.0005",
+    fx_min_data_points: 21,
+    tier2_swing_lookback: 20,
+    tier2_stop_buffer: "0.1",
+    tier2_min_data_points: 21,
     min_rr: "1.5",
     risk_pct: "1",
     cost_hurdle_x: "1",
@@ -37,8 +47,10 @@ const config: ConfigSnapshot = {
     fee_rate: "0.0004",
     spread: "0.0001",
     slippage: "0.0002",
+    news_blackout_buffer_before_ms: 1_800_000,
+    news_blackout_buffer_after_ms: 1_800_000,
     news_blackout: [],
-    trading_day_boundary: "UTC 00:00"
+    trading_day_boundary: "UTC 00:00", drift_min_samples: 20, drift_window: 50, override_cooldown_ms: 60_000, override_ttl_ms: 300_000
   }
 };
 
@@ -111,5 +123,72 @@ describe("createTier0", () => {
       tier: "tier0",
       reason: "manual block"
     });
+  });
+
+  // ── Live drift halt (3.5) ──────────────────────────────────────────────
+
+  it("vetoes with live_drift_halt when drifting=true (systemic, first in order)", () => {
+    expect(
+      createTier0().run({
+        ...context,
+        liveDrift: {
+          liveExpectancy: "-0.5",
+          drifting: true,
+          sampleCount: 25,
+          baselineLower: "0",
+        },
+      })
+    ).toEqual({
+      kind: "veto",
+      tier: "tier0",
+      reason: "live_drift_halt: liveExpectancy -0.5 below baselineLower 0 (25 samples)",
+    });
+  });
+
+  it("live_drift_halt takes priority over cooldown (systemic > per-session)", () => {
+    // Even if cooldown would also fire, drift halt comes first
+    expect(
+      createTier0().run({
+        ...context,
+        state: { ...state, lastLossEpochMillis: nowEpochMillis },
+        liveDrift: {
+          liveExpectancy: "-0.5",
+          drifting: true,
+          sampleCount: 25,
+          baselineLower: "0",
+        },
+      })
+    ).toEqual({
+      kind: "veto",
+      tier: "tier0",
+      reason: "live_drift_halt: liveExpectancy -0.5 below baselineLower 0 (25 samples)",
+    });
+  });
+
+  it("does NOT veto when drifting=false (proceeds to behavioral checks)", () => {
+    const result = createTier0().run({
+      ...context,
+      liveDrift: {
+        liveExpectancy: "0.5",
+        drifting: false,
+        sampleCount: 10,
+        baselineLower: "0",
+      },
+    });
+
+    // Should pass (or veto on behavioral grounds, but not drift)
+    if (result.kind === "veto") {
+      expect(result.reason).not.toContain("live_drift_halt");
+    }
+  });
+
+  it("does NOT veto when liveDrift is undefined (legacy tests unaffected)", () => {
+    // No liveDrift in context ⇒ old behavioral veto runs normally
+    expect(context.liveDrift).toBeUndefined();
+    const result = createTier0().run(context);
+    // Should either pass or behavioral-veto, never drift-halt
+    if (result.kind === "veto") {
+      expect(result.reason).not.toContain("live_drift_halt");
+    }
   });
 });

@@ -1,5 +1,6 @@
 import { createBinanceRestIngestion } from "@brighten/adapters";
 import { DEFAULT_PARAMS, createConfigVersion, snapshot } from "@brighten/config";
+import type { Tier1AssetClass } from "@brighten/decision-core";
 
 import { runBacktest } from "./run.js";
 import { runValidation } from "./validate.js";
@@ -40,8 +41,8 @@ async function main(): Promise<void> {
   const ingestion = createBinanceRestIngestion();
   const configSnapshot = snapshot(createConfigVersion(DEFAULT_PARAMS, undefined, Date.now()));
 
-  // Epic 1: no real candidate/edge generation yet (Tier 1/2 are stubs), so the
-  // strategy seam is empty. Epic 2 feeds real signals through this same seam.
+  // State/account are still fed through this seam until the live feedback loop
+  // and balance feed exist; decisions are produced inside decision-core.
   const strategyInput: BacktestStrategyInput = {
     state: { winStreak: 0, dailyLoss: "0", tradeCountToday: 0 },
     account: { equity: "10000" },
@@ -60,6 +61,7 @@ async function main(): Promise<void> {
     holdoutRatio: "0.2"
   };
   const mode: ValidationMode = args.command === "validate" ? "backtest" : "backtest";
+  const assetClass: Tier1AssetClass = "crypto";
 
   const result =
     args.command === "validate"
@@ -68,6 +70,7 @@ async function main(): Promise<void> {
           request,
           strategyInput,
           configSnapshot,
+          assetClass,
           spec: validationSpec,
           bootstrap: { resamples: 100, seed: 1 },
           tunedParamNames: [],
@@ -78,7 +81,8 @@ async function main(): Promise<void> {
           ingestion,
           request,
           strategyInput,
-          configSnapshot
+          configSnapshot,
+          assetClass
         });
 
   if (!result.ok) {

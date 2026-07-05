@@ -4,11 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b tsconfig.json",
+    "build": "tsc -b tsconfig.build.json",
     "typecheck": "tsc -b tsconfig.json",
-    "lint": "eslint . --max-warnings=0"
+    "lint": "eslint . --max-warnings=0",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@brighten/adapters": "workspace:*",
+    "@brighten/config": "workspace:*",
     "@brighten/decision-core": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.9"
   }
 }

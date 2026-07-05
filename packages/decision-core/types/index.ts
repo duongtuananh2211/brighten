@@ -1,3 +1,5 @@
+import type { SizingResult } from "../tiers/tier3/sizing.js";
+
 // Ingestion adapters populate this schema; changes must be versioned.
 export const MARKET_SNAPSHOT_SCHEMA_VERSION = 1;
 
@@ -56,6 +58,8 @@ export interface BehavioralState {
   readonly dailyLoss: string;
   readonly lastLossEpochMillis?: number | undefined;
   readonly tradeCountToday: number;
+  /** Bookkeeping field managed by the state-owner (applyMarketTick). Tiers ignore it. */
+  readonly tradingDayStartEpochMillis?: number | undefined;
 }
 
 export type TradeDirection = "long" | "short";
@@ -78,23 +82,60 @@ export interface CostEstimate {
   readonly roundTripFee: string;
 }
 
-// [PLACEHOLDER — enriched in Story 1.6/1.8]
-export interface Suggestion {
-  readonly kind: "stub";
-  readonly atEpochMillis: number;
-  readonly [key: string]: unknown;
+// Signals that triggered this suggestion — grounding for LLM narrator (FR-7, AD-9).
+export interface TriggeredSignals {
+  readonly tier1?: Record<string, unknown> | undefined;
+  readonly tier2?: Record<string, unknown> | undefined;
 }
 
-// [PLACEHOLDER — enriched in persistence/audit stories]
+// A persisted trade suggestion. Drivers compose this from pipeline-surfaced
+// direction/candidate/sizing plus driver-owned market/config metadata.
+export interface Suggestion {
+  readonly kind: "trade";
+  readonly pair: string;
+  readonly timeframe: string;
+  readonly atEpochMillis: number;
+  readonly direction: TradeDirection;
+  readonly candidate: TradeCandidate;
+  readonly sizing: SizingResult;
+  readonly configVersion: number;
+  readonly snapshotSchemaVersion: number;
+  /** Grounding signals that triggered this suggestion (4.3). */
+  readonly signals?: TriggeredSignals | undefined;
+  /** LLM narration (4.3). Undefined if narrator not yet run or errored. */
+  readonly narration?: Narration | undefined;
+  /** Error info when narration failed (AD-9: non-blocking). */
+  readonly narrationError?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export type AuditEventType = "suggestion-emitted" | "suggestion-blocked" | "override-recorded" | "trade-outcome";
+
+// Immutable audit log entry (AD-8). Append-only — never UPDATE/DELETE.
+// Each entry carries enough context to reconstruct why a decision was made:
+//   - configVersion + pair/timeframe/atEpochMillis lets determinism (AD-2) reproduce signals.
+//   - reason (blocked) + Suggestion (emitted) give human-readable justification.
 export interface AuditEvent {
-  readonly type: string;
+  readonly type: AuditEventType;
   readonly atEpochMillis: number;
   readonly payload: Readonly<Record<string, unknown>>;
+  /** Optional LLM narration (AD-9). Source deferred to narrator story. */
+  readonly narration?: string | undefined;
 }
 
-// [PLACEHOLDER — enriched in narrator stories]
 export interface Narration {
   readonly text: string;
+  /** Model used (e.g. "deepseek-chat"). */
+  readonly model?: string | undefined;
+  /** System prompt sent to the LLM. */
+  readonly promptSystem?: string | undefined;
+  /** User prompt (grounding data) sent to the LLM. */
+  readonly promptUser?: string | undefined;
+  /** Raw API response for auditability. */
+  readonly rawResponse?: string | undefined;
+  /** Temperature used. */
+  readonly temperature?: number | undefined;
+  /** Latency in milliseconds. */
+  readonly latencyMs?: number | undefined;
   readonly [key: string]: unknown;
 }
 

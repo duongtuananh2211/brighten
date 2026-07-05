@@ -1,8 +1,8 @@
 import {
   MARKET_SNAPSHOT_SCHEMA_VERSION,
   createTier0,
-  createTier1Stub,
-  createTier2Stub,
+  createTier1,
+  createTier2,
   createTier3
 } from "@brighten/decision-core";
 import type {
@@ -12,6 +12,7 @@ import type {
   Result,
   Tier
 } from "@brighten/decision-core";
+import type { Tier1AssetClass } from "@brighten/decision-core";
 import type { ConfigSnapshot } from "@brighten/config";
 
 import { computeMetrics } from "./metrics.js";
@@ -24,14 +25,14 @@ export interface RunBacktestDeps {
   readonly request: MarketSnapshotRequest;
   readonly strategyInput: BacktestStrategyInput;
   readonly configSnapshot: ConfigSnapshot;
+  readonly assetClass: Tier1AssetClass;
   // Defaults to the real epic-1 tier stack; tests may inject overrides.
   readonly tiers?: readonly Tier[];
 }
 
-// The real epic-1 pipeline: Tier 0 veto + Tier 3 sizing/cost-hurdle are live;
-// Tier 1/2 remain stubs until epic 2. The SAME core runs live and in backtest.
-export function defaultTiers(): readonly Tier[] {
-  return [createTier0(), createTier1Stub(), createTier2Stub(), createTier3()];
+// The same real decision-core tier stack runs live and in backtest.
+export function defaultTiers(assetClass: Tier1AssetClass): readonly Tier[] {
+  return [createTier0(), createTier1(assetClass), createTier2(), createTier3()];
 }
 
 export interface SegmentEvaluation {
@@ -43,7 +44,8 @@ export function evaluateSegment(
   snapshot: MarketSnapshot,
   strategyInput: BacktestStrategyInput,
   configSnapshot: ConfigSnapshot,
-  tiers: readonly Tier[] = defaultTiers()
+  assetClass: Tier1AssetClass,
+  tiers: readonly Tier[] = defaultTiers(assetClass)
 ): SegmentEvaluation {
   const emitted = replay(snapshot, strategyInput, configSnapshot, tiers);
   const simulated = simulate(emitted, snapshot, configSnapshot);
@@ -61,8 +63,8 @@ export async function runBacktest(deps: RunBacktestDeps): Promise<Result<Backtes
   }
 
   const snapshot = snapshotResult.value;
-  const tiers = deps.tiers ?? defaultTiers();
-  const { metrics } = evaluateSegment(snapshot, deps.strategyInput, deps.configSnapshot, tiers);
+  const tiers = deps.tiers ?? defaultTiers(deps.assetClass);
+  const { metrics } = evaluateSegment(snapshot, deps.strategyInput, deps.configSnapshot, deps.assetClass, tiers);
 
   return {
     ok: true,

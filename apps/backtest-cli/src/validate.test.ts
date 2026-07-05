@@ -1,21 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { TradeCandidate } from "@brighten/decision-core";
+import type { Tier } from "@brighten/decision-core";
 
 import {
   fakeIngestion,
-  makeConfigSnapshot,
   makeKline,
+  makeRealPipelineConfig,
   makeSnapshot
 } from "./test-support.js";
 import { runValidation } from "./validate.js";
 import type { BacktestStrategyInput } from "./types.js";
-
-const longCandidate: TradeCandidate = {
-  direction: "long",
-  entry: "100",
-  stop: "95",
-  target: "115"
-};
 
 const request = {
   pair: "BTCUSDT",
@@ -36,15 +29,48 @@ function strategyInput(): BacktestStrategyInput {
   return {
     state: { winStreak: 0, dailyLoss: "0", tradeCountToday: 0 },
     account: { equity: "10000" },
-    signals: [1, 4, 7, 9].map((tickIndex) => ({ tickIndex, candidate: longCandidate }))
+    signals: [1, 4, 7, 9].map((tickIndex) => ({ tickIndex }))
   };
+}
+
+function sizingTiers(): readonly Tier[] {
+  return [
+    { id: "tier0", run: () => ({ kind: "pass" }) },
+    { id: "tier1", run: () => ({ kind: "pass", enrich: { direction: "long" } }) },
+    {
+      id: "tier2",
+      run: () => ({
+        kind: "pass",
+        enrich: { candidate: { direction: "long", entry: "100", stop: "95", target: "115" } }
+      })
+    },
+    {
+      id: "tier3",
+      run: () => ({
+        kind: "pass",
+        enrich: {
+          sizing: {
+            ok: true,
+            direction: "long",
+            entry: "100",
+            stop: "95",
+            target: "115",
+            stopDistance: "5",
+            riskAmount: "100",
+            volume: "20",
+            rr: "3"
+          }
+        }
+      })
+    }
+  ];
 }
 
 describe("runValidation", () => {
   it("is reproducible, does not mutate inputs, and embeds validation evidence", async () => {
     const snapshot = validationSnapshot();
     const beforeSnapshot = structuredClone(snapshot);
-    const configSnapshot = makeConfigSnapshot();
+    const configSnapshot = makeRealPipelineConfig();
     const input = strategyInput();
     const beforeInput = structuredClone(input);
     const deps = {
@@ -52,6 +78,8 @@ describe("runValidation", () => {
       request,
       strategyInput: input,
       configSnapshot,
+      assetClass: "fx" as const,
+      tiers: sizingTiers(),
       spec: { folds: 3, inSampleRatio: "0.5", holdoutRatio: "0.25" },
       bootstrap: { resamples: 10, seed: 7 },
       tunedParamNames: ["risk_pct"],

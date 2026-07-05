@@ -1,4 +1,6 @@
 import type { Tier } from "../../pipeline/runner.js";
+import { computeRoundTripCost } from "../../cost/round-trip.js";
+import { abs, mul, sub } from "../../math/decimal.js";
 import { evaluateWinStreakDampening } from "../tier0/index.js";
 import { evaluateCostHurdle } from "./cost-hurdle.js";
 import { sizeTrade } from "./sizing.js";
@@ -52,21 +54,63 @@ export function createTier3(): Tier {
         return { kind: "veto", tier: "tier3", reason: formatReason(result.error) };
       }
 
-      if (ctx.expectedEdge === undefined || ctx.cost === undefined) {
-        return { kind: "pass" };
+      const costHurdleInput =
+        ctx.expectedEdge !== undefined && ctx.cost !== undefined
+          ? {
+              ok: true as const,
+              expectedEdge: ctx.expectedEdge,
+              roundTripFee: ctx.cost.roundTripFee
+            }
+          : deriveCostHurdleInput(result, ctx.config.params);
+
+      if (!costHurdleInput.ok) {
+        return { kind: "veto", tier: "tier3", reason: formatReason(costHurdleInput.error) };
       }
 
       const costHurdle = evaluateCostHurdle({
-        expectedEdge: ctx.expectedEdge,
-        roundTripFee: ctx.cost.roundTripFee,
+        expectedEdge: costHurdleInput.expectedEdge,
+        roundTripFee: costHurdleInput.roundTripFee,
         costHurdleX: ctx.config.params.cost_hurdle_x
       });
 
       return costHurdle.ok
-        ? { kind: "pass" }
+        ? { kind: "pass", enrich: { sizing: result } }
         : { kind: "veto", tier: "tier3", reason: formatReason(costHurdle.error) };
     }
   };
+}
+
+type CostParams = {
+  readonly fee_rate: string;
+  readonly spread: string;
+  readonly slippage: string;
+};
+
+type DerivedCostHurdleInput =
+  | { readonly ok: true; readonly expectedEdge: string; readonly roundTripFee: string }
+  | { readonly ok: false; readonly error: { readonly code: string; readonly context?: Readonly<Record<string, unknown>> } };
+
+function deriveCostHurdleInput(
+  sizing: {
+    readonly entry: string;
+    readonly target: string;
+    readonly volume: string;
+  },
+  params: CostParams
+): DerivedCostHurdleInput {
+  const expectedEdge = mul(abs(sub(sizing.target, sizing.entry)), sizing.volume);
+  const cost = computeRoundTripCost({
+    notional: mul(sizing.volume, sizing.entry),
+    feeRate: params.fee_rate,
+    spread: params.spread,
+    slippage: params.slippage
+  });
+
+  if (!cost.ok) {
+    return cost;
+  }
+
+  return { ok: true, expectedEdge, roundTripFee: cost.cost };
 }
 
 export function createTier3Stub(options: Tier3StubOptions = {}): Tier {

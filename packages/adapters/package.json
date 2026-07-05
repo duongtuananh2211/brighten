@@ -17,6 +17,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@brighten/config": "workspace:*",
     "@brighten/decision-core": "workspace:*"
   }
 }

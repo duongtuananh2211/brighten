@@ -20,6 +20,16 @@ const params: ConfigParams = {
   daily_loss_limit: "100",
   max_trades_per_day: 5,
   max_tunable_params: 5,
+  funding_extreme_threshold: "0.0005",
+  long_short_extreme_ratio: "2",
+  oi_confirmation_min: "0.01",
+  tier1_min_data_points: 2,
+  fx_swing_lookback: 20,
+  fx_sweep_min_penetration: "0.0005",
+  fx_min_data_points: 21,
+  tier2_swing_lookback: 20,
+  tier2_stop_buffer: "0.1",
+  tier2_min_data_points: 21,
   min_rr: "1.5",
   risk_pct: "1",
   cost_hurdle_x: "1",
@@ -27,8 +37,10 @@ const params: ConfigParams = {
   fee_rate: "0.0004",
   spread: "0.0001",
   slippage: "0.0002",
+  news_blackout_buffer_before_ms: 1_800_000,
+  news_blackout_buffer_after_ms: 1_800_000,
   news_blackout: [],
-  trading_day_boundary: "UTC 00:00"
+  trading_day_boundary: "UTC 00:00", drift_min_samples: 20, drift_window: 50, override_cooldown_ms: 60_000, override_ttl_ms: 300_000
 };
 
 const input: BehavioralVetoInput = {

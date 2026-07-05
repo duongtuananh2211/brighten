@@ -4,7 +4,8 @@ import type {
   MarketSnapshot,
   MarketSnapshotRequest,
   Result,
-  Tier
+  Tier,
+  Tier1AssetClass
 } from "@brighten/decision-core";
 import type { ConfigSnapshot } from "@brighten/config";
 
@@ -28,6 +29,7 @@ export interface RunValidationDeps {
   readonly request: MarketSnapshotRequest;
   readonly strategyInput: BacktestStrategyInput;
   readonly configSnapshot: ConfigSnapshot;
+  readonly assetClass: Tier1AssetClass;
   readonly spec: WalkForwardSpec;
   readonly bootstrap: {
     readonly resamples: number;
@@ -51,12 +53,12 @@ export async function runValidation(deps: RunValidationDeps): Promise<Result<Val
     return { ok: false, error: split.error };
   }
 
-  const tiers = deps.tiers ?? defaultTiers();
+  const tiers = deps.tiers ?? defaultTiers(deps.assetClass);
   const walkForward = split.folds.map((fold) => ({
     inSample: fold.inSample,
-    outOfSample: evaluateRange(snapshot, fold.outOfSample, deps.strategyInput, deps.configSnapshot, tiers)
+    outOfSample: evaluateRange(snapshot, fold.outOfSample, deps.strategyInput, deps.configSnapshot, deps.assetClass, tiers)
   }));
-  const holdout = evaluateRange(snapshot, split.holdout, deps.strategyInput, deps.configSnapshot, tiers);
+  const holdout = evaluateRange(snapshot, split.holdout, deps.strategyInput, deps.configSnapshot, deps.assetClass, tiers);
   const oosNetRs = walkForward.flatMap((fold) => fold.outOfSample.trades.map((trade) => trade.netR));
   const ciInput = oosNetRs.length > 0 ? oosNetRs : holdout.trades.map((trade) => trade.netR);
   const expectancyCI = bootstrapExpectancyCI(ciInput, deps.bootstrap);
@@ -102,11 +104,12 @@ function evaluateRange(
   range: IndexRange,
   strategyInput: BacktestStrategyInput,
   configSnapshot: ConfigSnapshot,
+  assetClass: Tier1AssetClass,
   tiers: readonly Tier[]
 ): SegmentReport {
   const segmentSnapshot = sliceSnapshot(snapshot, range);
   const segmentInput = reindexStrategyInput(strategyInput, range);
-  const evaluated = evaluateSegment(segmentSnapshot, segmentInput, configSnapshot, tiers);
+  const evaluated = evaluateSegment(segmentSnapshot, segmentInput, configSnapshot, assetClass, tiers);
 
   return {
     range,

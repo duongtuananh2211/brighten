@@ -22,6 +22,16 @@ export interface ConfigParams {
   readonly daily_loss_limit: string;
   readonly max_trades_per_day: number;
   readonly max_tunable_params: number;
+  readonly funding_extreme_threshold: string;
+  readonly long_short_extreme_ratio: string;
+  readonly oi_confirmation_min: string;
+  readonly tier1_min_data_points: number;
+  readonly fx_swing_lookback: number;
+  readonly fx_sweep_min_penetration: string;
+  readonly fx_min_data_points: number;
+  readonly tier2_swing_lookback: number;
+  readonly tier2_stop_buffer: string;
+  readonly tier2_min_data_points: number;
   readonly min_rr: string;
   readonly risk_pct: string;
   readonly cost_hurdle_x: string;
@@ -29,8 +39,14 @@ export interface ConfigParams {
   readonly fee_rate: string;
   readonly spread: string;
   readonly slippage: string;
+  readonly news_blackout_buffer_before_ms: number;
+  readonly news_blackout_buffer_after_ms: number;
   readonly news_blackout: readonly NewsBlackoutWindow[];
   readonly trading_day_boundary: string;
+  readonly drift_min_samples: number;
+  readonly drift_window: number;
+  readonly override_cooldown_ms: number;
+  readonly override_ttl_ms: number;
 }
 
 export const DEFAULT_PARAMS: ConfigParams = {
@@ -40,6 +56,16 @@ export const DEFAULT_PARAMS: ConfigParams = {
   daily_loss_limit: "100",
   max_trades_per_day: 5,
   max_tunable_params: 5,
+  funding_extreme_threshold: "0.0005",
+  long_short_extreme_ratio: "2",
+  oi_confirmation_min: "0.01",
+  tier1_min_data_points: 2,
+  fx_swing_lookback: 20,
+  fx_sweep_min_penetration: "0.0005",
+  fx_min_data_points: 21,
+  tier2_swing_lookback: 20,
+  tier2_stop_buffer: "0.1",
+  tier2_min_data_points: 21,
   min_rr: "1.5",
   risk_pct: "1",
   cost_hurdle_x: "1",
@@ -47,8 +73,14 @@ export const DEFAULT_PARAMS: ConfigParams = {
   fee_rate: "0.0004",
   spread: "0.0001",
   slippage: "0.0002",
+  news_blackout_buffer_before_ms: 1_800_000,
+  news_blackout_buffer_after_ms: 1_800_000,
   news_blackout: [],
-  trading_day_boundary: "UTC 00:00"
+  trading_day_boundary: "UTC 00:00",
+  drift_min_samples: 20,
+  drift_window: 50,
+  override_cooldown_ms: 60_000,
+  override_ttl_ms: 300_000
 };
 
 const decimalPattern = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
@@ -66,6 +98,16 @@ export function validateParams(input: unknown): Result<ConfigParams> {
     "daily_loss_limit",
     "max_trades_per_day",
     "max_tunable_params",
+    "funding_extreme_threshold",
+    "long_short_extreme_ratio",
+    "oi_confirmation_min",
+    "tier1_min_data_points",
+    "fx_swing_lookback",
+    "fx_sweep_min_penetration",
+    "fx_min_data_points",
+    "tier2_swing_lookback",
+    "tier2_stop_buffer",
+    "tier2_min_data_points",
     "min_rr",
     "risk_pct",
     "cost_hurdle_x",
@@ -73,8 +115,14 @@ export function validateParams(input: unknown): Result<ConfigParams> {
     "fee_rate",
     "spread",
     "slippage",
+    "news_blackout_buffer_before_ms",
+    "news_blackout_buffer_after_ms",
     "news_blackout",
-    "trading_day_boundary"
+    "trading_day_boundary",
+    "drift_min_samples",
+    "drift_window",
+    "override_cooldown_ms",
+    "override_ttl_ms"
   ] as const;
 
   for (const fieldName of fieldNames) {
@@ -101,6 +149,82 @@ export function validateParams(input: unknown): Result<ConfigParams> {
   const maxTunableParams = input.max_tunable_params;
   if (!isPositiveInteger(maxTunableParams)) {
     return invalid("invalid_positive_integer", "max_tunable_params", "Expected integer >= 1");
+  }
+
+  const newsBlackoutBufferBeforeMs = input.news_blackout_buffer_before_ms;
+  if (!isNonNegativeInteger(newsBlackoutBufferBeforeMs)) {
+    return invalid("invalid_non_negative_integer", "news_blackout_buffer_before_ms", "Expected integer >= 0");
+  }
+
+  const newsBlackoutBufferAfterMs = input.news_blackout_buffer_after_ms;
+  if (!isNonNegativeInteger(newsBlackoutBufferAfterMs)) {
+    return invalid("invalid_non_negative_integer", "news_blackout_buffer_after_ms", "Expected integer >= 0");
+  }
+  if (newsBlackoutBufferBeforeMs + newsBlackoutBufferAfterMs <= 0) {
+    return invalid(
+      "invalid_news_blackout_buffer",
+      "news_blackout_buffer_after_ms",
+      "before+after must be > 0"
+    );
+  }
+
+  const tier1MinDataPoints = input.tier1_min_data_points;
+  if (!isPositiveInteger(tier1MinDataPoints)) {
+    return invalid("invalid_positive_integer", "tier1_min_data_points", "Expected integer >= 1");
+  }
+
+  const fxSwingLookback = input.fx_swing_lookback;
+  if (!isPositiveInteger(fxSwingLookback)) {
+    return invalid("invalid_positive_integer", "fx_swing_lookback", "Expected integer >= 1");
+  }
+
+  const fxMinDataPoints = input.fx_min_data_points;
+  if (!isPositiveInteger(fxMinDataPoints)) {
+    return invalid("invalid_positive_integer", "fx_min_data_points", "Expected integer >= 1");
+  }
+
+  const tier2SwingLookback = input.tier2_swing_lookback;
+  if (!isPositiveInteger(tier2SwingLookback)) {
+    return invalid("invalid_positive_integer", "tier2_swing_lookback", "Expected integer >= 1");
+  }
+
+  const tier2MinDataPoints = input.tier2_min_data_points;
+  if (!isPositiveInteger(tier2MinDataPoints)) {
+    return invalid("invalid_positive_integer", "tier2_min_data_points", "Expected integer >= 1");
+  }
+
+  const fundingExtremeThreshold = validateNonNegativeDecimalField(
+    "funding_extreme_threshold",
+    input.funding_extreme_threshold
+  );
+  if (!fundingExtremeThreshold.ok) {
+    return fundingExtremeThreshold;
+  }
+
+  const longShortExtremeRatio = validateDecimalField("long_short_extreme_ratio", input.long_short_extreme_ratio);
+  if (!longShortExtremeRatio.ok) {
+    return longShortExtremeRatio;
+  }
+  if (compareNonNegativeDecimalStrings(longShortExtremeRatio.value, "1") <= 0) {
+    return invalid("invalid_tier1_param", "long_short_extreme_ratio", "Expected decimal string > 1");
+  }
+
+  const oiConfirmationMin = validateNonNegativeDecimalField("oi_confirmation_min", input.oi_confirmation_min);
+  if (!oiConfirmationMin.ok) {
+    return oiConfirmationMin;
+  }
+
+  const fxSweepMinPenetration = validateNonNegativeDecimalField(
+    "fx_sweep_min_penetration",
+    input.fx_sweep_min_penetration
+  );
+  if (!fxSweepMinPenetration.ok) {
+    return fxSweepMinPenetration;
+  }
+
+  const tier2StopBuffer = validateNonNegativeDecimalField("tier2_stop_buffer", input.tier2_stop_buffer);
+  if (!tier2StopBuffer.ok) {
+    return tier2StopBuffer;
   }
 
   const sizeDampening = validateDecimalField("size_dampening", input.size_dampening);
@@ -169,6 +293,26 @@ export function validateParams(input: unknown): Result<ConfigParams> {
     );
   }
 
+  const driftMinSamples = input.drift_min_samples;
+  if (!isPositiveInteger(driftMinSamples)) {
+    return invalid("invalid_positive_integer", "drift_min_samples", "Expected integer >= 1");
+  }
+
+  const driftWindow = input.drift_window;
+  if (!isPositiveInteger(driftWindow)) {
+    return invalid("invalid_positive_integer", "drift_window", "Expected integer >= 1");
+  }
+
+  const overrideCooldownMs = input.override_cooldown_ms;
+  if (!isNonNegativeInteger(overrideCooldownMs)) {
+    return invalid("invalid_non_negative_integer", "override_cooldown_ms", "Expected integer >= 0");
+  }
+
+  const overrideTtlMs = input.override_ttl_ms;
+  if (!isPositiveInteger(overrideTtlMs)) {
+    return invalid("invalid_positive_integer", "override_ttl_ms", "Expected integer >= 1");
+  }
+
   return {
     ok: true,
     value: {
@@ -178,6 +322,16 @@ export function validateParams(input: unknown): Result<ConfigParams> {
       daily_loss_limit: dailyLossLimit.value,
       max_trades_per_day: maxTradesPerDay,
       max_tunable_params: maxTunableParams,
+      funding_extreme_threshold: fundingExtremeThreshold.value,
+      long_short_extreme_ratio: longShortExtremeRatio.value,
+      oi_confirmation_min: oiConfirmationMin.value,
+      tier1_min_data_points: tier1MinDataPoints,
+      fx_swing_lookback: fxSwingLookback,
+      fx_sweep_min_penetration: fxSweepMinPenetration.value,
+      fx_min_data_points: fxMinDataPoints,
+      tier2_swing_lookback: tier2SwingLookback,
+      tier2_stop_buffer: tier2StopBuffer.value,
+      tier2_min_data_points: tier2MinDataPoints,
       min_rr: minRr.value,
       risk_pct: riskPct.value,
       cost_hurdle_x: costHurdleX.value,
@@ -185,8 +339,14 @@ export function validateParams(input: unknown): Result<ConfigParams> {
       fee_rate: feeRate.value,
       spread: spread.value,
       slippage: slippage.value,
+      news_blackout_buffer_before_ms: newsBlackoutBufferBeforeMs,
+      news_blackout_buffer_after_ms: newsBlackoutBufferAfterMs,
       news_blackout: newsBlackoutResult.value,
-      trading_day_boundary: tradingDayBoundary
+      trading_day_boundary: tradingDayBoundary,
+      drift_min_samples: driftMinSamples,
+      drift_window: driftWindow,
+      override_cooldown_ms: overrideCooldownMs,
+      override_ttl_ms: overrideTtlMs
     }
   };
 }
@@ -280,6 +440,31 @@ function validateNonNegativeDecimalField(fieldName: string, value: unknown): Res
 
 function decimalToNumber(value: string): number {
   return Number(value);
+}
+
+function compareNonNegativeDecimalStrings(left: string, right: string): number {
+  const [leftInteger = "", leftFraction = ""] = left.split(".");
+  const [rightInteger = "", rightFraction = ""] = right.split(".");
+  const normalizedLeftInteger = leftInteger.replace(/^0+(?=\d)/, "");
+  const normalizedRightInteger = rightInteger.replace(/^0+(?=\d)/, "");
+
+  if (normalizedLeftInteger.length !== normalizedRightInteger.length) {
+    return normalizedLeftInteger.length > normalizedRightInteger.length ? 1 : -1;
+  }
+
+  if (normalizedLeftInteger !== normalizedRightInteger) {
+    return normalizedLeftInteger > normalizedRightInteger ? 1 : -1;
+  }
+
+  const maxFractionLength = Math.max(leftFraction.length, rightFraction.length);
+  const normalizedLeftFraction = leftFraction.padEnd(maxFractionLength, "0");
+  const normalizedRightFraction = rightFraction.padEnd(maxFractionLength, "0");
+
+  if (normalizedLeftFraction === normalizedRightFraction) {
+    return 0;
+  }
+
+  return normalizedLeftFraction > normalizedRightFraction ? 1 : -1;
 }
 
 function invalid(

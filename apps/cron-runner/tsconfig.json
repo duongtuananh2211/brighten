@@ -6,8 +6,10 @@
     "composite": true
   },
   "references": [
-    { "path": "../../packages/decision-core" }
+    { "path": "../../packages/decision-core" },
+    { "path": "../../packages/adapters" },
+    { "path": "../../packages/config" }
   ],
-  "include": ["functions/**/*.ts"],
+  "include": ["src/**/*.ts", "functions/**/*.ts", "vitest.config.ts"],
   "exclude": ["dist", "node_modules"]
 }

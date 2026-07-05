@@ -1,7 +1,10 @@
+import { LiveProvider } from "../components/LiveProvider";
+import { ServerShell } from "./server-shell";
+
 export default function Home() {
   return (
-    <main className="placeholder">
-      <h1>Brighten - coming soon</h1>
-    </main>
+    <LiveProvider>
+      <ServerShell />
+    </LiveProvider>
   );
 }

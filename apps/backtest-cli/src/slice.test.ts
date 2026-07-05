@@ -1,16 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { TradeCandidate } from "@brighten/decision-core";
 
 import { makeKline, makeSnapshot } from "./test-support.js";
 import { reindexStrategyInput, sliceSnapshot } from "./slice.js";
 import type { BacktestStrategyInput } from "./types.js";
-
-const candidate: TradeCandidate = {
-  direction: "long",
-  entry: "100",
-  stop: "95",
-  target: "115"
-};
 
 describe("sliceSnapshot and reindexStrategyInput", () => {
   it("slices klines and reindexes signals without mutating input", () => {
@@ -20,11 +12,7 @@ describe("sliceSnapshot and reindexStrategyInput", () => {
     const strategyInput: BacktestStrategyInput = {
       state: { winStreak: 0, dailyLoss: "0", tradeCountToday: 0 },
       account: { equity: "10000" },
-      signals: [
-        { tickIndex: 0, candidate },
-        { tickIndex: 2, candidate },
-        { tickIndex: 4, candidate }
-      ]
+      signals: [{ tickIndex: 0 }, { tickIndex: 2 }, { tickIndex: 4 }]
     };
     const beforeSnapshot = structuredClone(snapshot);
     const beforeInput = structuredClone(strategyInput);
@@ -38,7 +26,7 @@ describe("sliceSnapshot and reindexStrategyInput", () => {
       makeKline(3).openTime
     ]);
     expect(sliced.atEpochMillis).toBe(makeKline(1).openTime);
-    expect(reindexed.signals).toEqual([{ tickIndex: 1, candidate }]);
+    expect(reindexed.signals).toEqual([{ tickIndex: 1 }]);
     expect(snapshot).toEqual(beforeSnapshot);
     expect(strategyInput).toEqual(beforeInput);
   });

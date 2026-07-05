@@ -1,6 +1,12 @@
 import type { Tier } from "../../pipeline/runner.js";
 import { evaluateBehavioralVeto } from "./behavioral-veto.js";
+import type { LiveDriftStatus } from "./live-drift.js";
+import { isOverrideActive } from "./override.js";
 export { evaluateBehavioralVeto } from "./behavioral-veto.js";
+export { evaluateLiveDrift } from "./live-drift.js";
+export type { LiveDriftStatus, LiveDriftInput } from "./live-drift.js";
+export { buildOverrideGrant, isOverrideActive } from "./override.js";
+export type { OverrideGrant, BuildOverrideGrantInput } from "./override.js";
 export { evaluateWinStreakDampening } from "./win-streak.js";
 export type {
   BehavioralVetoBlock,
@@ -23,11 +29,25 @@ export function createTier0(): Tier {
   return {
     id: "tier0",
     run(ctx) {
+      // 1. live_drift_halt — systemic: entire edge may be broken (FR-10, AD-5)
+      if (ctx.liveDrift?.drifting === true) {
+        if (!isOverrideActive(ctx.overrideGrants, "live_drift_halt", ctx.nowEpochMillis)) {
+          return {
+            kind: "veto",
+            tier: "tier0",
+            reason: formatDriftReason(ctx.liveDrift),
+          };
+        }
+        // Override active — skip drift halt, continue to behavioural checks
+      }
+
+      // 2. behavioral veto (cooldown, daily-loss, max-trades, news)
       const outcome = evaluateBehavioralVeto({
         state: ctx.state,
         params: ctx.config.params,
         pair: ctx.input.pair,
-        nowEpochMillis: ctx.nowEpochMillis
+        nowEpochMillis: ctx.nowEpochMillis,
+        overrideGrants: ctx.overrideGrants,
       });
 
       return outcome.blocked
@@ -96,4 +116,8 @@ function formatReason(error: { readonly code: string; readonly context?: Readonl
 
   const message = error.context?.message;
   return typeof message === "string" ? `${error.code}: ${message}` : error.code;
+}
+
+function formatDriftReason(status: LiveDriftStatus): string {
+  return `live_drift_halt: liveExpectancy ${status.liveExpectancy} below baselineLower ${status.baselineLower} (${status.sampleCount} samples)`;
 }
