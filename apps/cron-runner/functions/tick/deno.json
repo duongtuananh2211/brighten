@@ -1,9 +1,10 @@
 {
   "imports": {
-    "@brighten/adapters": "../../../../packages/adapters/index.ts",
-    "@brighten/config": "../../../../packages/config/src/index.ts",
-    "@brighten/decision-core": "../../../../packages/decision-core/index.ts",
-    "@brighten/decision-core/ports": "../../../../packages/decision-core/ports/index.ts",
-    "../../src/tick.ts": "../../src/tick.ts"
+    "@brighten/adapters": "../../../packages/adapters/dist/index.js",
+    "@brighten/config": "../../../packages/config/dist/index.js",
+    "@brighten/decision-core": "../../../packages/decision-core/dist/index.js",
+    "@brighten/decision-core/ports": "../../../packages/decision-core/dist/ports/index.js",
+    "@brighten/decision-core/math": "../../../packages/decision-core/dist/math/decimal.js",
+    "decimal.js": "npm:decimal.js@^10.6.0"
   }
 }

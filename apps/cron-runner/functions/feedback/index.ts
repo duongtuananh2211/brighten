@@ -1,6 +1,6 @@
 import { createBinanceAccount, createPostgresPersistence, systemClockAdapterScaffold } from "@brighten/adapters";
 import type { SqlClient } from "@brighten/adapters";
-import type { runFeedback as runFeedbackType } from "../../src/feedback.js";
+import { runFeedback } from "../../../apps/cron-runner/dist/src/feedback.js";
 
 declare const Deno: {
   readonly env: {
@@ -16,12 +16,8 @@ type PostgresFactory = (url: string) => {
   readonly end?: () => Promise<void>;
 };
 
-const feedbackModulePath = "../../src/feedback.ts";
-
 Deno.serve(async () => {
   try {
-    const { runFeedback } = await import(feedbackModulePath) as { readonly runFeedback: typeof runFeedbackType };
-
     const result = await runFeedback({
       account: createBinanceAccount({
         signer: () => "",

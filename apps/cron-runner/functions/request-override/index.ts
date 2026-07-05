@@ -3,7 +3,7 @@
 
 import { createPostgresPersistence } from "@brighten/adapters";
 import type { SqlClient } from "@brighten/adapters";
-import type { requestOverride as requestOverrideType } from "../../src/override.js";
+import { requestOverride } from "../../../apps/cron-runner/dist/src/override.js";
 
 declare const Deno: {
   readonly env: { readonly get: (key: string) => string | undefined };
@@ -14,8 +14,6 @@ type PostgresFactory = (url: string) => {
   readonly unsafe: (text: string, values?: readonly unknown[]) => Promise<readonly unknown[]>;
 };
 
-const overrideModulePath = "../../src/override.ts";
-
 Deno.serve(async (req: Request) => {
   try {
     const body = await req.json() as { ruleCode?: string; reason?: string; typedConfirmation?: string };
@@ -23,8 +21,6 @@ Deno.serve(async (req: Request) => {
     if (typeof body.ruleCode !== "string" || typeof body.reason !== "string" || typeof body.typedConfirmation !== "string") {
       return json({ ok: false, error: { code: "invalid_input", source: "request-override" } }, 400);
     }
-
-    const { requestOverride } = await import(overrideModulePath) as { readonly requestOverride: typeof requestOverrideType };
 
     const persistence = createPostgresPersistence({ sql: await createSqlClient(), logger: console.error });
 

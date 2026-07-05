@@ -1,6 +1,6 @@
 import { createPostgresPersistence } from "@brighten/adapters";
 import type { SqlClient } from "@brighten/adapters";
-import type { confirmFill as confirmFillType } from "../../src/feedback.js";
+import { confirmFill } from "../../../apps/cron-runner/dist/src/feedback.js";
 
 declare const Deno: {
   readonly env: {
@@ -16,8 +16,6 @@ type PostgresFactory = (url: string) => {
   readonly end?: () => Promise<void>;
 };
 
-const feedbackModulePath = "../../src/feedback.ts";
-
 Deno.serve(async (req: Request) => {
   try {
     const body = await req.json() as { fillId?: string; suggestionId?: string; result?: "win" | "loss" };
@@ -25,8 +23,6 @@ Deno.serve(async (req: Request) => {
     if (typeof body.fillId !== "string" || typeof body.suggestionId !== "string" || (body.result !== "win" && body.result !== "loss")) {
       return json({ ok: false, error: { code: "invalid_input", source: "confirm-fill" } }, 400);
     }
-
-    const { confirmFill } = await import(feedbackModulePath) as { readonly confirmFill: typeof confirmFillType };
 
     const persistence = createPostgresPersistence({ sql: await createSqlClient(), logger: console.error });
 

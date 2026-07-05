@@ -5,7 +5,7 @@ import {
 } from "@brighten/adapters";
 import type { SqlClient } from "@brighten/adapters";
 import type { Tier1AssetClass } from "@brighten/decision-core";
-import type { runTick as runTickType } from "../../src/tick.js";
+import { runTick } from "../../../apps/cron-runner/dist/src/tick.js";
 
 declare const Deno: {
   readonly env: {
@@ -21,11 +21,8 @@ type PostgresFactory = (url: string) => {
   readonly end?: () => Promise<void>;
 };
 
-const tickModulePath = "../../src/tick.ts";
-
 Deno.serve(async () => {
   try {
-    const { runTick } = await import(tickModulePath) as { readonly runTick: typeof runTickType };
     const result = await runTick({
       ingestion: createBinanceRestIngestion({
         fapiBaseUrl: env("BINANCE_BASE_URL", "https://fapi.binance.com")
